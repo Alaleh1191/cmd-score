@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CMD Score – Coronary Microvascular Dysfunction Prediction Tool</title>
+<style>
+  :root { color-scheme: light; --navy:#1B2A41; --teal:#1E7F86; --crim:#B83A4B; --amber:#B7791F; --green:#2F855A;
+          --panel:#F1F5F8; --line:#D6DEE5; --gray:#5B6770; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Arial, Helvetica, sans-serif; color: var(--navy); background:#fff; line-height:1.45; }
+  header { padding: 22px 24px 10px; max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--gray); font-size: 14px; margin: 0; }
+  main { max-width: 980px; margin: 0 auto; padding: 8px 24px 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border-radius: 10px; padding: 18px 18px 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 12px; }
+  .intended { grid-column: 1 / -1; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 13.5px; }
+  label { display:block; font-size: 13.5px; font-weight: bold; margin: 10px 0 4px; }
+  .unit { font-weight: normal; color: var(--gray); }
+  input[type=number] { width: 100%; padding: 8px 10px; font-size: 15px; border: 1px solid var(--line); border-radius: 6px; background:#fff; color: var(--navy); }
+  input[type=number]:focus { outline: 2px solid var(--teal); border-color: var(--teal); }
+  .row2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .seg { display:flex; gap: 0; margin-top: 2px; }
+  .seg button { flex:1; padding: 8px 6px; font-size: 14px; border:1px solid var(--line); background:#fff; color: var(--navy); cursor:pointer; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; } .seg button:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+  .seg button.on { background: var(--teal); color:#fff; border-color: var(--teal); }
+  .toggle { font-size: 12.5px; color: var(--teal); background:none; border:none; padding:0; cursor:pointer; text-decoration: underline; margin-top: 4px; }
+  .hint { font-size: 12px; color: var(--gray); margin-top: 3px; min-height: 1em; }
+  .warn { color: var(--amber); }
+  .err { color: var(--crim); }
+  .actions { margin-top: 14px; display:flex; gap:10px; }
+  .btn { padding: 9px 14px; font-size: 14px; border-radius: 6px; border: 1px solid var(--teal); background: var(--teal); color: #fff; cursor:pointer; }
+  .btn.secondary { background:#fff; color: var(--teal); }
+  .result-empty { color: var(--gray); font-size: 14px; }
+  .prob { font-size: 40px; font-weight: bold; color: var(--teal); margin: 2px 0 0; }
+  .prob-label { font-size: 13px; color: var(--gray); }
+  .verdict { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; }
+  .verdict.high { background: #FCEFD9; color: #7A4A0B; }
+  .verdict.low { background: #E3F2EA; color: #1F5A3C; }
+  .verdict small { display:block; font-weight: normal; margin-top: 3px; }
+  .bar-wrap { position: relative; margin: 16px 0 6px; height: 34px; }
+  .bar { position:absolute; top: 12px; left:0; right:0; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #DDEFF0, #F4D3D8); }
+  .tick { position:absolute; top: 4px; width: 2px; height: 26px; background: var(--navy); }
+  .tick-label { position:absolute; top: -12px; font-size: 11px; color: var(--navy); transform: translateX(-50%); white-space: nowrap; }
+  .marker { position:absolute; top: 7px; width: 20px; height: 20px; border-radius: 50%; background: var(--crim); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--crim); transform: translateX(-50%); }
+  .scale { display:flex; justify-content: space-between; font-size: 11px; color: var(--gray); }
+  .obs { margin-top: 14px; font-size: 13.5px; }
+  svg text { font-family: Arial, Helvetica, sans-serif; }
+  .perf { display:grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .perf div { background:#fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align:center; }
+  .perf b { display:block; font-size: 17px; color: var(--teal); }
+  .perf span { font-size: 11.5px; color: var(--gray); }
+  details { grid-column: 1 / -1; background:#fff; border:1px solid var(--line); border-radius:10px; padding: 10px 16px; font-size: 13.5px; }
+  details summary { cursor:pointer; font-weight:bold; }
+  code { background: var(--panel); padding: 2px 5px; border-radius: 4px; font-size: 12.5px; }
+  footer { max-width: 980px; margin: 0 auto; padding: 0 24px 28px; font-size: 12px; color: var(--gray); }
+</style>
+</head>
+<body>
+<header>
+  <h1>CMD Score</h1>
+  <p class="sub">Clinical prediction of coronary microvascular dysfunction (PET myocardial flow reserve &lt; 2) · derived and externally validated in the REFINE PET registry</p>
+</header>
+
+<main>
+  <div class="intended">
+    <b>Intended use.</b> Patients with angina or angina-equivalent symptoms in whom obstructive epicardial coronary artery disease has been reasonably excluded by first-line testing (suspected ANOCA), to estimate the likelihood of reduced myocardial flow reserve and support decisions about referral for quantitative assessment of coronary vasodilator function. Not validated in patients with prior CABG, heart transplantation, or abnormal perfusion. For research and educational use; it does not replace clinical judgement or diagnostic testing.
+  </div>
+
+  <section class="card" aria-labelledby="in-h">
+    <h2 id="in-h">Patient values</h2>
+    <form id="f" novalidate>
+      <div class="row2">
+        <div><label for="age">Age <span class="unit">(years)</span></label><input id="age" type="number" inputmode="decimal" min="18" max="100" step="1"><div class="hint" id="h-age"></div></div>
+        <div><label for="egfr">eGFR <span class="unit">(mL/min/1.73 m²)</span></label><input id="egfr" type="number" inputmode="decimal" min="1" max="200" step="1"><div class="hint" id="h-egfr"></div></div>
+      </div>
+      <div class="row2">
+        <div><label for="hr">Resting heart rate <span class="unit">(beats/min)</span></label><input id="hr" type="number" inputmode="decimal" min="30" max="200" step="1"><div class="hint" id="h-hr"></div></div>
+        <div><label for="sbp">Resting systolic BP <span class="unit">(mmHg)</span></label><input id="sbp" type="number" inputmode="decimal" min="60" max="260" step="1"><div class="hint" id="h-sbp"></div></div>
+      </div>
+
+      <div id="lvmi-direct">
+        <label for="lvmi">LV mass index <span class="unit">(g/m²)</span></label>
+        <input id="lvmi" type="number" inputmode="decimal" min="20" max="250" step="0.1">
+        <button type="button" class="toggle" id="to-calc">Calculate from LV mass, height and weight instead</button>
+        <div class="hint" id="h-lvmi"></div>
+      </div>
+      <div id="lvmi-calc" hidden>
+        <div class="row3">
+          <div><label for="lvm">LV mass <span class="unit">(g)</span></label><input id="lvm" type="number" inputmode="decimal" min="40" max="600" step="1"></div>
+          <div><label for="ht">Height <span class="unit">(cm)</span></label><input id="ht" type="number" inputmode="decimal" min="120" max="220" step="1"></div>
+          <div><label for="wt">Weight <span class="unit">(kg)</span></label><input id="wt" type="number" inputmode="decimal" min="30" max="250" step="0.1"></div>
+        </div>
+        <button type="button" class="toggle" id="to-direct">Enter LV mass index directly instead</button>
+        <div class="hint" id="h-lvcalc">BSA by the Mosteller formula: √(height × weight / 3600).</div>
+      </div>
+
+      <div class="row2">
+        <div><label>Diabetes</label><div class="seg" data-name="dm"><button type="button" data-v="0">No</button><button type="button" data-v="1">Yes</button></div><div class="hint" id="h-dm"></div></div>
+        <div><label>Peripheral vascular disease</label><div class="seg" data-name="pvd"><button type="button" data-v="0">No</button><button type="button" data-v="1">Yes</button></div><div class="hint" id="h-pvd"></div></div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn">Calculate</button>
+        <button type="button" class="btn secondary" id="reset">Clear</button>
+        <button type="button" class="btn secondary" id="example">Example patient</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="out-h" aria-live="polite">
+    <h2 id="out-h">Result</h2>
+    <div id="empty" class="result-empty">Enter all seven values and select <b>Calculate</b>. Calculations run entirely in your browser; no data are sent or stored.</div>
+    <div id="out" hidden>
+      <div class="prob-label">Predicted probability of MFR &lt; 2 (model output)</div>
+      <div class="prob" id="prob">–</div>
+      <div class="bar-wrap" aria-hidden="true">
+        <div class="bar"></div>
+        <div class="tick" id="tick"></div><div class="tick-label" id="tick-label">23% rule-out threshold</div>
+        <div class="marker" id="marker"></div>
+      </div>
+      <div class="scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="obs" id="obs"></div>
+      <svg id="dec" viewBox="0 0 420 150" width="100%" role="img" aria-label="Observed prevalence of MFR below 2 by decile of predicted risk in the external validation cohort"></svg>
+      <div style="font-size:12px;color:var(--gray)">Observed prevalence of MFR &lt; 2 by decile of predicted risk in the external validation cohort (n = 6,630; 663 per decile). The patient's decile is highlighted.</div>
+    </div>
+    <div style="margin-top:14px;font-size:13px;font-weight:bold">Performance at the 23% threshold (external validation)</div>
+    <div class="perf">
+      <div><b>91%</b><span>Sensitivity<br>(90–92%)</span></div>
+      <div><b>36%</b><span>Specificity<br>(35–38%)</span></div>
+      <div><b>93%</b><span>NPV<br>(92–94%)</span></div>
+      <div><b>31%</b><span>PPV<br>(30–33%)</span></div>
+    </div>
+  </section>
+
+  <details>
+    <summary>Model equation and important caveats</summary>
+    <p>Predicted probability = 1 / (1 + e<sup>−L</sup>), where</p>
+    <p><code>L = −4.4846 + 0.018551 × age − 0.011766 × eGFR + 0.025495 × heart rate + 0.004234 × SBP + 0.008441 × LV mass index + 0.17731 × diabetes + 0.42108 × PVD</code></p>
+    <p>Diabetes and PVD are coded 1 if present and 0 if absent. Coefficients come from a LASSO logistic regression (λ<sub>1SE</sub>) derived in 3,257 patients at one centre and externally validated in 6,630 patients at eight centres (AUROC 0.76, 95% CI 0.75–0.77).</p>
+    <ul>
+      <li><b>Population.</b> Derived and validated in patients referred for clinical rest–stress PET with normal relative perfusion (summed stress score ≤ 3) and without prior CABG or heart transplantation. Performance in other settings, including general cardiology populations before advanced imaging, has not been established.</li>
+      <li><b>Outcome.</b> CMD was defined as PET global myocardial flow reserve &lt; 2. Reduced MFR is a surrogate of CMD; it does not capture endothelium-dependent dysfunction or microvascular spasm and may also reflect diffuse epicardial disease or high resting flow.</li>
+      <li><b>LV mass index.</b> Measured from PET in the study cohorts. Echocardiographic or CMR values are not interchangeable and have not been validated with this model.</li>
+      <li><b>Calibration.</b> In external validation the model overestimated risk on average (calibration-in-the-large −0.36) and its probabilities were compressed (calibration slope 1.70). Interpret the absolute probability with caution; the observed prevalence in the matching decile is shown for reference. Local recalibration may be needed before clinical use.</li>
+      <li><b>Threshold.</b> The 23% threshold was chosen in the derivation cohort to give sensitivity and NPV of at least 80% while maximizing specificity. It is intended to identify patients in whom reduced MFR is less likely, not to diagnose CMD.</li>
+    </ul>
+    <p>Values outside the range seen in the external validation cohort (1st–99th percentile) are flagged; predictions for such values are extrapolations.</p>
+  </details>
+</main>
+
+<footer>
+  Reference: Azhir A, et al. A Clinical Prediction Tool to Identify Coronary Microvascular Dysfunction. [Journal, year; DOI to be added on publication.] · For research and educational use only; not a medical device and not a substitute for clinical judgement.
+</footer>
+
+<script>
+const MODEL = {
+  a: -4.484606172068306,
+  b: { age: 0.018550895325506255, egfr: -0.011766240244317702, hr: 0.025494693787285232, sbp: 0.004233938366611827,
+       lvmi: 0.008440585939431313, dm: 0.1773124699845239, pvd: 0.4210827229904923 },
+  thr: 0.22906674116627285,
+  cuts: [0.1658101391732985, 0.20059059848137423, 0.2297988586734787, 0.25969228801874933, 0.2906281828386895, 0.3234158500298404, 0.36389574552554355, 0.41223564689855846, 0.48334658233369],
+  obs: [0.0603, 0.0664, 0.0935, 0.1403, 0.1584, 0.2172, 0.2836, 0.3228, 0.4811, 0.6003],
+  meanp: [0.137, 0.184, 0.216, 0.244, 0.275, 0.307, 0.342, 0.388, 0.445, 0.560],
+  // [hard min, hard max, 1st pct, 99th pct] for validation and range warnings
+  ranges: { age: [18, 100, 34, 90], egfr: [1, 200, 5, 119], hr: [30, 200, 46, 109], sbp: [60, 260, 93, 189], lvmi: [20, 250, 56, 139] }
+};
+function predict(v) {
+  const b = MODEL.b;
+  const L = MODEL.a + b.age*v.age + b.egfr*v.egfr + b.hr*v.hr + b.sbp*v.sbp + b.lvmi*v.lvmi + b.dm*v.dm + b.pvd*v.pvd;
+  return 1 / (1 + Math.exp(-L));
+}
+function decile(p) { let i = 0; while (i < MODEL.cuts.length && p >= MODEL.cuts[i]) i++; return i; }
+if (typeof module !== 'undefined') { module.exports = { predict, decile, MODEL }; }
+
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  const state = { dm: null, pvd: null, mode: 'direct' };
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      seg.querySelectorAll('button').forEach(b2 => b2.classList.remove('on'));
+      btn.classList.add('on'); state[seg.dataset.name] = Number(btn.dataset.v);
+      $('h-' + seg.dataset.name).textContent = '';
+    }));
+  });
+  $('to-calc').onclick = () => { state.mode = 'calc'; $('lvmi-direct').hidden = true; $('lvmi-calc').hidden = false; };
+  $('to-direct').onclick = () => { state.mode = 'direct'; $('lvmi-calc').hidden = true; $('lvmi-direct').hidden = false; };
+
+  function readNum(id, key, label) {
+    const el = $(id), h = $('h-' + id), raw = el.value.trim(), x = Number(raw), r = MODEL.ranges[key];
+    h.className = 'hint'; h.textContent = '';
+    if (raw === '' || !isFinite(x)) { h.className = 'hint err'; h.textContent = 'Required.'; return null; }
+    if (x < r[0] || x > r[1]) { h.className = 'hint err'; h.textContent = label + ' must be between ' + r[0] + ' and ' + r[1] + '.'; return null; }
+    if (x < r[2] || x > r[3]) { h.className = 'hint warn'; h.textContent = 'Outside the usual range in the validation data (' + r[2] + '–' + r[3] + '); interpret with caution.'; }
+    return x;
+  }
+  function readLVMI() {
+    if (state.mode === 'direct') return readNum('lvmi', 'lvmi', 'LV mass index');
+    const h = $('h-lvcalc'); const m = Number($('lvm').value), ht = Number($('ht').value), wt = Number($('wt').value);
+    if (!$('lvm').value || !$('ht').value || !$('wt').value || !(m > 0 && ht > 0 && wt > 0)) { h.className = 'hint err'; h.textContent = 'Enter LV mass, height and weight.'; return null; }
+    const bsa = Math.sqrt(ht * wt / 3600), lvmi = m / bsa, r = MODEL.ranges.lvmi;
+    if (lvmi < r[0] || lvmi > r[1]) { h.className = 'hint err'; h.textContent = 'Calculated LV mass index (' + lvmi.toFixed(1) + ' g/m²) is implausible; check the inputs.'; return null; }
+    h.className = 'hint' + ((lvmi < r[2] || lvmi > r[3]) ? ' warn' : '');
+    h.textContent = 'BSA ' + bsa.toFixed(2) + ' m² (Mosteller) → LV mass index ' + lvmi.toFixed(1) + ' g/m²' + ((lvmi < r[2] || lvmi > r[3]) ? ' – outside the usual range in the validation data.' : '.');
+    return lvmi;
+  }
+  function drawDeciles(k) {
+    const svg = $('dec'), W = 420, H = 150, pad = { l: 34, r: 8, t: 10, b: 26 }, bw = (W - pad.l - pad.r) / 10, ymax = 0.7;
+    let s = '';
+    [0, 0.2, 0.4, 0.6].forEach(t => { const y = pad.t + (1 - t / ymax) * (H - pad.t - pad.b);
+      s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="#D6DEE5" stroke-width="1"/>` +
+           `<text x="${pad.l - 6}" y="${y + 4}" font-size="10" text-anchor="end" fill="#5B6770">${Math.round(t * 100)}%</text>`; });
+    MODEL.obs.forEach((o, i) => {
+      const x = pad.l + i * bw + 3, h = o / ymax * (H - pad.t - pad.b), y = H - pad.b - h;
+      s += `<rect x="${x}" y="${y}" width="${bw - 6}" height="${h}" rx="2" fill="${i === k ? '#B83A4B' : '#AFC6CC'}"/>` +
+           `<text x="${x + (bw - 6) / 2}" y="${H - pad.b + 13}" font-size="10" text-anchor="middle" fill="#5B6770">${i + 1}</text>`;
+      if (i === k) s += `<text x="${x + (bw - 6) / 2}" y="${y - 4}" font-size="10" font-weight="bold" text-anchor="middle" fill="#B83A4B">${Math.round(o * 100)}%</text>`;
+    });
+    s += `<text x="${pad.l + (W - pad.l - pad.r) / 2}" y="${H - 2}" font-size="10" text-anchor="middle" fill="#5B6770">Decile of predicted risk</text>`;
+    svg.innerHTML = s;
+  }
+  $('f').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = { age: readNum('age', 'age', 'Age'), egfr: readNum('egfr', 'egfr', 'eGFR'), hr: readNum('hr', 'hr', 'Heart rate'),
+                sbp: readNum('sbp', 'sbp', 'Systolic BP'), lvmi: readLVMI(), dm: state.dm, pvd: state.pvd };
+    if (v.dm === null) { $('h-dm').className = 'hint err'; $('h-dm').textContent = 'Select Yes or No.'; }
+    if (v.pvd === null) { $('h-pvd').className = 'hint err'; $('h-pvd').textContent = 'Select Yes or No.'; }
+    if (Object.values(v).some(x => x === null)) { $('out').hidden = true; $('empty').hidden = false; return; }
+    const p = predict(v), k = decile(p);
+    $('prob').textContent = (100 * p).toFixed(0) + '%';
+    const pos = x => (100 * Math.min(Math.max(x, 0), 1)) + '%';
+    $('marker').style.left = pos(p); $('tick').style.left = pos(MODEL.thr); $('tick-label').style.left = pos(MODEL.thr);
+    const vd = $('verdict');
+    if (p >= MODEL.thr) {
+      vd.className = 'verdict high';
+      vd.innerHTML = 'At or above the 23% rule-out threshold<small>Reduced MFR cannot be ruled out; consider referral for quantitative assessment of coronary vasodilator function (e.g., PET MBF quantification, stress perfusion CMR, or invasive coronary function testing). In validation, 31% of patients above the threshold had MFR &lt; 2.</small>';
+    } else {
+      vd.className = 'verdict low';
+      vd.innerHTML = 'Below the 23% rule-out threshold<small>Reduced MFR is less likely: in validation, 93% of patients below the threshold had MFR ≥ 2. Consider alternative explanations for symptoms in the clinical context.</small>';
+    }
+    const lo = k === 0 ? 0 : MODEL.cuts[k - 1], hi = k === 9 ? null : MODEL.cuts[k];
+    $('obs').innerHTML = `Among external validation patients in the same decile of predicted risk (decile ${k + 1}, predicted ${hi === null ? '≥ ' + Math.round(lo * 100) + '%' : (k === 0 ? '< ' + Math.round(hi * 100) + '%' : Math.round(lo * 100) + '–' + Math.round(hi * 100) + '%')}), <b>${Math.round(MODEL.obs[k] * 100)}%</b> had MFR &lt; 2.`;
+    drawDeciles(k);
+    $('empty').hidden = true; $('out').hidden = false;
+  });
+  $('example').onclick = () => {
+    $('to-direct').click();
+    Object.entries({ age: 62, egfr: 58, hr: 82, sbp: 148, lvmi: 92 }).forEach(([k, val]) => { $(k).value = val; });
+    document.querySelector('.seg[data-name="dm"] button[data-v="1"]').click();
+    document.querySelector('.seg[data-name="pvd"] button[data-v="0"]').click();
+    $('f').requestSubmit();
+  };
+  $('reset').onclick = () => {
+    $('f').reset(); state.dm = state.pvd = null;
+    document.querySelectorAll('.seg button').forEach(b2 => b2.classList.remove('on'));
+    document.querySelectorAll('.hint').forEach(h => { if (h.id !== 'h-lvcalc') { h.textContent = ''; h.className = 'hint'; } });
+    $('out').hidden = true; $('empty').hidden = false;
+  };
+}
+</script>
+</body>
+</html>
